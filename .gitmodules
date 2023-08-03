@@ -1,0 +1,4 @@
+[submodule "fonts"]
+	path = fonts
+	url = https://git.xatlabs.com/Cato/FIA-Fonts.git
+	branch = master
