@@ -77,8 +77,8 @@ class GCMController:
     def update(self):
         data = []
         for sector in self.sector_colors:
-            data.append(0x00) # dummy byte to facilitate writing 4x uint8_t into a uint32_t on the target
-            data.append((sector >> 16) & 0xFF)
-            data.append((sector >> 8) & 0xFF)
             data.append(sector & 0xFF)
+            data.append((sector >> 8) & 0xFF)
+            data.append((sector >> 16) & 0xFF)
+            data.append(0x00) # dummy byte to facilitate writing 4x uint8_t into a uint32_t on the target
         return self.send_command_with_response(self.ACT_SET_SEC, data)
