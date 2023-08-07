@@ -23,7 +23,7 @@ class CommunicationError(IOError):
     pass
 
 
-class RGBController:
+class GCMController:
     ACT_SET_SEC = 0xA0  # Set sector colors
 
     def __init__(self, port, debug=False, exclusive=True, num_sectors=32):

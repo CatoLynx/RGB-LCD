@@ -25,7 +25,7 @@ from pyfis.aegmis.exceptions import CommunicationError
 
 from _config import *
 from text_renderer import TextRenderer
-from rgb_controller import RGBController
+from gcm_controller import GCMController
 
 
 DISPLAY_MODES = [
@@ -52,7 +52,7 @@ def main():
     api = C3TOCAPI()
     renderer = TextRenderer("../fonts")
     display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
-    #rgb = RGBController(CONFIG_RGB_PORT)
+    #gcm = GCMController(CONFIG_GCM_PORT)
     
     tracks = api.get_tracks()
     track_length = sorted(tracks['waypoints'].values(), key=lambda e: e['trackmarker'])[-1]['trackmarker']
@@ -81,7 +81,7 @@ def main():
     while True:
         try:
             display.delete_page(secondary_page)
-            #rgb.clear()
+            #gcm.clear()
             page, secondary_page = secondary_page, page
             print("Handling mode: " + mode)
             utcnow = datetime.datetime.utcnow()
@@ -128,7 +128,7 @@ def main():
                 display.check_error(response)
             
             display.set_page(page)
-            #rgb.update()
+            #gcm.update()
             mode_index += 1
             if mode_index >= len(DISPLAY_MODES):
                 mode_index = 0
