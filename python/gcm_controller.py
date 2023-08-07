@@ -26,14 +26,14 @@ class CommunicationError(IOError):
 class GCMController:
     ACT_SET_SEC = 0xA0  # Set sector colors
 
-    def __init__(self, port, debug=False, exclusive=True, num_sectors=32):
+    def __init__(self, port, debug=False, exclusive=True, baudrate=9600, num_sectors=32):
         self.debug = debug
         self.num_sectors = num_sectors
-        self.port = serial.Serial(port, baudrate=115200, timeout=2.0, exclusive=exclusive)
+        self.port = serial.Serial(port, baudrate=baudrate, timeout=2.0, exclusive=exclusive)
         self.clear()
     
     def clear(self):
-        self.sector_colors = [0x000000] * num_sectors
+        self.sector_colors = [0x000000] * self.num_sectors
     
     def set_sector(self, sector, color):
         self.sector_colors[sector] = color
