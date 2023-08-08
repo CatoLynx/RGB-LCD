@@ -22,6 +22,7 @@ import json
 import os
 import random
 import time
+import traceback
 
 from c3toc import C3TOCAPI
 from pretalx_api import PretalxAPI
@@ -337,8 +338,16 @@ def main():
             mode = DISPLAY_MODES[mode_index]
             time.sleep(page_interval)
         except KeyboardInterrupt:
-            break
+            raise
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            break
+        except:
+            traceback.print_exc()
+            print("Restarting in 10 seconds")
+            time.sleep(10)
