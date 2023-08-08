@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import datetime
 import dateutil.parser
+import hashlib
 import json
 import os
 import random
@@ -36,7 +37,7 @@ from gcm_controller import GCMController
 
 
 DISPLAY_MODES = [
-    "arr_dep_eta",
+    #"arr_dep_eta",
     "pretalx",
     #"pride"
 ]
@@ -51,6 +52,13 @@ TRACK_CODES = {
     "Entertainment": "E",
     "Performance": "P",
     "Milliways": "MW"
+}
+
+ROOM_ABBREVIATIONS = {
+    "Digitalcourage": "Dig.courage",
+    "Bits & Bäume": "Bits+Bäume",
+    "Hardware Hacking Village": "HW Hck Vlg",
+    "Milliways Workshop Dome": "MW Dome"
 }
 
 TRACK_COLORS = {
@@ -82,13 +90,10 @@ def _max_duration(event, hours, minutes):
     duration = datetime.timedelta(hours=_time.hour, minutes=_time.minute)
     return (duration <= datetime.timedelta(hours=hours, minutes=minutes))
 
-def _ongoing_or_future(event):
+def _ongoing_or_future(event, max_ongoing):
     now = datetime.datetime.now()
-    _time = datetime.datetime.strptime(event['duration'], "%H:%M").time()
-    duration = datetime.timedelta(hours=_time.hour, minutes=_time.minute)
     start = dateutil.parser.isoparse(event['date']).replace(tzinfo=None)
-    end = start + duration
-    return (now < end)
+    return (now < start) or ((now - start).total_seconds() <= (max_ongoing * 60))
 
 # Pride flag image parser
 def _flag_to_sectors(flag):
@@ -143,7 +148,7 @@ def main():
     secondary_page = 2
     display_width = 3 * 96
     display_height = 64
-    page_interval = 20 # Page switch interval in seconds (roughly)
+    page_interval = 10 # Page switch interval in seconds (roughly)
     
     eta_lookback = 10 # How many minutes of past train positions to consider for ETA
     eta_max_jump = 30 # Maximum ETA jump in seconds
@@ -154,12 +159,13 @@ def main():
     pretalx = PretalxAPI("https://pretalx.c3voc.de/camp2023/schedule/export/schedule.json")
     renderer = TextRenderer("../fonts")
     display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
-    gcm = GCMController(CONFIG_GCM_PORT)
+    gcm = GCMController(CONFIG_GCM_PORT, debug=False)
     time.sleep(3)
+    gcm.set_high_current(True)
     
     tracks = toc.get_tracks()
     track_length = sorted(tracks['waypoints'].values(), key=lambda e: e['trackmarker'])[-1]['trackmarker']
-    print("Track length: {}".format(track_length))
+    #print("Track length: {}".format(track_length))
     
     try:
         display.reset()
@@ -199,11 +205,11 @@ def main():
             
             for name, info in train_info.items():
                 if info['eta'] is None:
-                    print("No ETA available for {name}".format(name=name))
+                    pass #print("No ETA available for {name}".format(name=name))
                 else:
                     delta = (info['eta'] - utcnow).total_seconds()
-                    print("{name} will arrive at trackmarker {trackmarker} in {seconds} seconds, at {time} UTC".format(name=name, trackmarker=display_trackmarker, seconds=delta, time=info['eta'].strftime("%H:%M:%S")))
-                pprint(info)
+                    #print("{name} will arrive at trackmarker {trackmarker} in {seconds} seconds, at {time} UTC".format(name=name, trackmarker=display_trackmarker, seconds=delta, time=info['eta'].strftime("%H:%M:%S")))
+                #pprint(info)
             ###################################################################
             
             
@@ -219,7 +225,7 @@ def main():
                         y_base = i * 16
                         line = name[:2].upper()
                         # Crudely make lines have repeatable distinct colors
-                        color_index = (hash(line) // 1000) % len(GENERIC_PALETTE)
+                        color_index = sum(hashlib.md5(line.encode('utf8')).digest()) % len(GENERIC_PALETTE)
                         for sector in range(8):
                             gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
                         line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
@@ -234,11 +240,11 @@ def main():
             elif mode == "pretalx":
                 # Display header
                 track_image = renderer.render_text(width=28, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Trck")
-                location_image = renderer.render_text(width=68, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Location")
+                location_image = renderer.render_text(width=70, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Location")
                 title_image = renderer.render_text(width=32, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Title")
                 time_image = renderer.render_text(width=50, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='right', valign='top', inverted=True, spacing=1, char_width=None, text="Starts in")
                 display.image(page, 0, 0, track_image)
-                display.image(page, 28, 0, location_image)
+                display.image(page, 26, 0, location_image)
                 display.image(page, 96, 0, title_image)
                 display.image(page, 238, 0, time_image)
                 display.fill_area(page, x=0, y=8, width=288, height=1, state=1)
@@ -255,7 +261,7 @@ def main():
                 events = filter(lambda event: _max_duration(event, 2, 0), events)
                 
                 # Filter out all events that are finished
-                events = filter(lambda event: _ongoing_or_future(event), events)
+                events = filter(lambda event: _ongoing_or_future(event, max_ongoing=9), events)
                 events = list(events)
 
                 if events:
@@ -264,8 +270,8 @@ def main():
                         delta = start - now
                         seconds = round(delta.total_seconds())
                         if seconds < 0:
-                            seconds = 0
-                        if seconds >= 3600:
+                            time_text = "{}m ago".format(round(-seconds / 60))
+                        elif seconds >= 3600:
                             time_text = "{}h{}m".format(seconds // 3600, round((seconds % 3600) / 60))
                         else:
                             time_text = "{}m".format(round((seconds % 3600) / 60))
@@ -278,7 +284,7 @@ def main():
                             gcm.set_sector(y_base // 2 + r, track_color)
 
                         track_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=track_code)
-                        room_image = renderer.render_text(width=500, height=16, pad_left=0, pad_top=3, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=event['room'])
+                        room_image = renderer.render_text(width=68, height=16, pad_left=0, pad_top=3, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=ROOM_ABBREVIATIONS.get(event['room'], event['room']))
                         title_image = renderer.render_text(width=1000, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=event['title'])
                         time_image = renderer.render_text(width=50, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='right', valign='top', inverted=True, spacing=1, char_width=None, text=time_text)
                         
@@ -288,15 +294,12 @@ def main():
                         title_image = title_image.crop((0, 0, title_bbox[2], title_bbox[3]))
                         
                         display.image(page, 0, y_base, track_image)
-                        if room_image.size[0] > 64:
-                            display.scroll_image(i*2, page, 28, y_base, 64, room_image, extra_whitespace=25)
-                        else:
-                            display.image(page, 28, y_base, room_image)
+                        display.image(page, 26, y_base+1, room_image)
                         if title_image.size[0] > 140:
-                            display.scroll_image(i*2+1, page, 96, y_base, 140, title_image, extra_whitespace=50)
+                            display.scroll_image(i*2+1, page, 96, y_base+3, 140, title_image, extra_whitespace=50)
                         else:
-                            display.image(page, 96, y_base, title_image)
-                        display.image(page, 238, y_base, time_image)
+                            display.image(page, 96, y_base+3, title_image)
+                        display.image(page, 238, y_base+3, time_image)
                 else:
                     no_evt_img = renderer.render_text(width=display_width, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Events")
                     display.image(page, 0, 16, no_evt_img)

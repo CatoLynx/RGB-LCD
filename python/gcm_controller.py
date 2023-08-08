@@ -36,7 +36,15 @@ class GCMController:
     def clear(self):
         self.sector_colors = [0x000000] * self.num_sectors
     
-    def set_sector(self, sector, color):
+    def set_sector(self, sector, color, gamma=2.2):
+        if gamma != 1.0:
+            red = (color >> 16) & 0xFF
+            green = (color >> 8) & 0xFF
+            blue = color & 0xFF
+            red = round(((red ** gamma) / (255 ** gamma)) * 255)
+            green = round(((green ** gamma) / (255 ** gamma)) * 255)
+            blue = round(((blue ** gamma) / (255 ** gamma)) * 255)
+            color = (red << 16) | (green << 8) | blue
         self.sector_colors[sector] = color
 
     def debug_message(self, message):
@@ -65,7 +73,8 @@ class GCMController:
 
     def send_command(self, action, payload):
         data = [0xFF, action, len(payload)] + payload
-        print("TX: " + self.debug_message(data))
+        if self.debug:
+            print("TX: " + self.debug_message(data))
         self.port.write(bytearray(data))
 
     def send_command_with_response(self, action, payload):
