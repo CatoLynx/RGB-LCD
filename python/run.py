@@ -65,6 +65,16 @@ TRACK_COLORS = {
     "MW": 0x3cacd7
 }
 
+GENERIC_PALETTE = [
+    0xff0000,
+    0x00ff00,
+    0x0000ff,
+    0xff0000,
+    0x00ffff,
+    0xff00ff,
+    0xffffff
+]
+
 
 # Pretalx event filters
 def _max_duration(event, hours, minutes):
@@ -207,9 +217,12 @@ def main():
                         else:
                             eta_str = "???"
                         y_base = i * 16
+                        line = name[:2].upper()
+                        # Crudely make lines have repeatable distinct colors
+                        color_index = (hash(line) // 1000) % len(GENERIC_PALETTE)
                         for sector in range(8):
-                            gcm.set_sector(y_base // 2 + sector, 0xffffff)
-                        line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=name[:2].upper())
+                            gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
+                        line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
                         display.image(page, 0, y_base, line_image)
                         dest_image = renderer.render_text(width=130, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=name)
                         display.image(page, 32, y_base, dest_image)
