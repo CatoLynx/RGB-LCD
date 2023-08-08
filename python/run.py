@@ -36,7 +36,7 @@ from gcm_controller import GCMController
 
 
 DISPLAY_MODES = [
-    #"arr_dep_eta",
+    "arr_dep_eta",
     "pretalx",
     #"pride"
 ]
@@ -313,6 +313,7 @@ def main():
                 display.check_error(response)
             
             display.set_page(page)
+            time.sleep(0.4) # LCD update delay
             gcm.update()
             mode_index += 1
             if mode_index >= len(DISPLAY_MODES):
