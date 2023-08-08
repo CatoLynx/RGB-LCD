@@ -25,6 +25,7 @@ class CommunicationError(IOError):
 
 class GCMController:
     ACT_SET_SEC = 0xA0  # Set sector colors
+    ACT_SET_HC  = 0xA1  # Set high current mode
 
     def __init__(self, port, debug=False, exclusive=True, baudrate=9600, num_sectors=32):
         self.debug = debug
@@ -82,3 +83,7 @@ class GCMController:
             data.append((sector >> 16) & 0xFF)
             data.append(0x00) # dummy byte to facilitate writing 4x uint8_t into a uint32_t on the target
         return self.send_command_with_response(self.ACT_SET_SEC, data)
+
+    def set_high_current(self, state):
+        data = [state]
+        return self.send_command_with_response(self.ACT_SET_HC, data)
