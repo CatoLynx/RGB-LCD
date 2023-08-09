@@ -149,7 +149,7 @@ def main():
     secondary_page = 2
     display_width = 3 * 96
     display_height = 64
-    page_interval = 10 # Page switch interval in seconds (roughly)
+    page_interval = 20 # Page switch interval in seconds (roughly)
     
     eta_lookback = 10 # How many minutes of past train positions to consider for ETA
     eta_max_jump = 30 # Maximum ETA jump in seconds
@@ -286,7 +286,7 @@ def main():
 
                         track_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=track_code)
                         room_image = renderer.render_text(width=68, height=16, pad_left=0, pad_top=3, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=ROOM_ABBREVIATIONS.get(event['room'], event['room']))
-                        title_image = renderer.render_text(width=1000, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=event['title'])
+                        title_image = renderer.render_text(width=1000, height=16, pad_left=0, pad_top=0, font="10_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=event['title'])
                         time_image = renderer.render_text(width=50, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='right', valign='top', inverted=True, spacing=1, char_width=None, text=time_text)
                         
                         room_bbox = room_image.getbbox()
