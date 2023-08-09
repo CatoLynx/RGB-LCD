@@ -339,6 +339,16 @@ def main():
             time.sleep(page_interval)
         except KeyboardInterrupt:
             raise
+        except:
+            try:
+                display.port.close()
+            except:
+                pass
+            try:
+                gcm.port.close()
+            except:
+                pass
+            raise
 
 
 if __name__ == "__main__":
