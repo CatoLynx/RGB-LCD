@@ -25,7 +25,7 @@ import time
 import traceback
 
 from c3toc import C3TOCAPI
-from pretalx_api import PretalxAPI
+from pretalx_api import PretalxAPI, ongoing_or_future_filter, max_duration_filter
 
 from PIL import Image
 from pprint import pprint
@@ -84,17 +84,6 @@ GENERIC_PALETTE = [
     0xffffff
 ]
 
-
-# Pretalx event filters
-def _max_duration(event, hours, minutes):
-    _time = datetime.datetime.strptime(event['duration'], "%H:%M").time()
-    duration = datetime.timedelta(hours=_time.hour, minutes=_time.minute)
-    return (duration <= datetime.timedelta(hours=hours, minutes=minutes))
-
-def _ongoing_or_future(event, max_ongoing):
-    now = datetime.datetime.now()
-    start = dateutil.parser.isoparse(event['date']).replace(tzinfo=None)
-    return (now < start) or ((now - start).total_seconds() <= (max_ongoing * 60))
 
 # Pride flag image parser
 def _flag_to_sectors(flag):
@@ -259,10 +248,10 @@ def main():
                 #pprint(tracks)
                 
                 # Filter out all events longer then 2 hours
-                events = filter(lambda event: _max_duration(event, 2, 0), events)
+                events = filter(lambda event: max_duration_filter(event, 2, 0), events)
                 
                 # Filter out all events that are finished
-                events = filter(lambda event: _ongoing_or_future(event, max_ongoing=9), events)
+                events = filter(lambda event: ongoing_or_future_filter(event, max_ongoing=9), events)
                 events = list(events)
 
                 if events:
