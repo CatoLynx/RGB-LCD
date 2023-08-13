@@ -38,9 +38,9 @@ from gcm_controller import GCMController
 
 
 DISPLAY_MODES = [
-    #"arr_dep_eta",
+    "arr_dep_eta",
     "pretalx",
-    #"pride"
+    "pride"
 ]
 
 TRACK_CODES = {
@@ -143,7 +143,7 @@ def main():
     eta_lookback = 10 # How many minutes of past train positions to consider for ETA
     eta_max_jump = 30 # Maximum ETA jump in seconds
     trackmarker_delta_arrived = 20 # "station zone" size in track units
-    display_trackmarker = 163 # Physical trackmarker position of the display
+    display_trackmarker = 34 # Physical trackmarker position of the display
     
     toc = C3TOCAPI()
     pretalx = PretalxAPI("https://pretalx.c3voc.de/camp2023/schedule/export/schedule.json")
