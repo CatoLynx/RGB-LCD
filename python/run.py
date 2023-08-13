@@ -225,8 +225,8 @@ def main():
                         eta_image = renderer.render_text(width=28, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='right', valign='middle', inverted=True, spacing=1, char_width=None, text=eta_str)
                         display.image(page, 260, y_base, eta_image)
                 else:
-                    no_dep_img = renderer.render_text(width=display_width, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Departures")
-                    display.image(page, 0, 16, no_dep_img)
+                    no_dep_img = renderer.render_text(width=display_width-24, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Departures")
+                    display.image(page, 24, 16, no_dep_img)
             elif mode == "pretalx":
                 # Display header
                 track_image = renderer.render_text(width=28, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Trck")
@@ -291,8 +291,8 @@ def main():
                             display.image(page, 96, y_base+3, title_image)
                         display.image(page, 238, y_base+3, time_image)
                 else:
-                    no_evt_img = renderer.render_text(width=display_width, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Events")
-                    display.image(page, 0, 16, no_evt_img)
+                    no_evt_img = renderer.render_text(width=display_width-24, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Events")
+                    display.image(page, 24, 16, no_evt_img)
             elif mode == "pride":
                 display.fill_area(page, x=0, y=0, width=24, height=64, state=1)
                 flags = [file for file in os.listdir("../flags") if not file.endswith("json")]
