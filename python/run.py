@@ -220,7 +220,7 @@ def main():
                             gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
                         line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
                         display.image(page, 0, y_base, line_image)
-                        dest_image = renderer.render_text(width=130, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=name)
+                        dest_image = renderer.render_text(width=220, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=name)
                         display.image(page, 32, y_base, dest_image)
                         eta_image = renderer.render_text(width=28, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='right', valign='middle', inverted=True, spacing=1, char_width=None, text=eta_str)
                         display.image(page, 260, y_base, eta_image)
