@@ -307,8 +307,8 @@ def main():
                     gcm.set_sector(i, color)
                 name_image = renderer.render_text(width=256, height=24, pad_left=0, pad_top=0, font="14S_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=2, char_width=None, text="Pride Flags: " + info['name'])
                 display.image(page, 32, 0, name_image)
-                info_image = renderer.render_multiline_text(width=256, height=40, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='left', valign='bottom', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text=info['info'], auto_wrap=True, break_words=False)
-                display.image(page, 32, 24, info_image)
+                #info_image = renderer.render_multiline_text(width=256, height=40, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='left', valign='bottom', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text=info['info'], auto_wrap=True, break_words=False)
+                #display.image(page, 32, 24, info_image)
                     
             
             # Process any messages from the display and check for errors
