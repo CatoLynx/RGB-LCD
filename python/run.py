@@ -132,53 +132,53 @@ def _flag_to_sectors(flag):
 
 
 def main():
-    mode_index = 0
-    mode = DISPLAY_MODES[mode_index]
-    page = 1
-    secondary_page = 2
-    display_width = 3 * 96
-    display_height = 64
-    page_interval = 20 # Page switch interval in seconds (roughly)
-    
-    eta_lookback = 10 # How many minutes of past train positions to consider for ETA
-    eta_max_jump = 30 # Maximum ETA jump in seconds
-    trackmarker_delta_arrived = 20 # "station zone" size in track units
-    display_trackmarker = 34 # Physical trackmarker position of the display
-    
-    toc = C3TOCAPI()
-    pretalx = PretalxAPI("https://pretalx.c3voc.de/camp2023/schedule/export/schedule.json")
-    renderer = TextRenderer("../fonts")
-    display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
-    gcm = GCMController(CONFIG_GCM_PORT, debug=False)
-    time.sleep(3)
-    gcm.set_high_current(True)
-    
-    tracks = toc.get_tracks()
-    track_length = sorted(tracks['waypoints'].values(), key=lambda e: e['trackmarker'])[-1]['trackmarker']
-    #print("Track length: {}".format(track_length))
-    
     try:
-        display.reset()
-    except CommunicationError:
-        pass
-    time.sleep(1)
-    display.set_config(
-        lcd_module=0,
-        num_lcds=3,
-        x=0,
-        y=0,
-        id=1,
-        board_timeout=600,
-        fr_freq=0,
-        fps=0,
-        is_master=False,
-        protocol_timeout=600,
-        response_delay=0
-    )
-    display.become_master()
-    
-    while True:
+        mode_index = 0
+        mode = DISPLAY_MODES[mode_index]
+        page = 1
+        secondary_page = 2
+        display_width = 3 * 96
+        display_height = 64
+        page_interval = 20 # Page switch interval in seconds (roughly)
+        
+        eta_lookback = 10 # How many minutes of past train positions to consider for ETA
+        eta_max_jump = 30 # Maximum ETA jump in seconds
+        trackmarker_delta_arrived = 20 # "station zone" size in track units
+        display_trackmarker = 34 # Physical trackmarker position of the display
+        
+        toc = C3TOCAPI()
+        pretalx = PretalxAPI("https://pretalx.c3voc.de/camp2023/schedule/export/schedule.json")
+        renderer = TextRenderer("../fonts")
+        display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
+        gcm = GCMController(CONFIG_GCM_PORT, debug=False)
+        time.sleep(3)
+        gcm.set_high_current(True)
+        
+        tracks = toc.get_tracks()
+        track_length = sorted(tracks['waypoints'].values(), key=lambda e: e['trackmarker'])[-1]['trackmarker']
+        #print("Track length: {}".format(track_length))
+        
         try:
+            display.reset()
+        except CommunicationError:
+            pass
+        time.sleep(1)
+        display.set_config(
+            lcd_module=0,
+            num_lcds=3,
+            x=0,
+            y=0,
+            id=1,
+            board_timeout=600,
+            fr_freq=0,
+            fps=0,
+            is_master=False,
+            protocol_timeout=600,
+            response_delay=0
+        )
+        display.become_master()
+        
+        while True:
             display.delete_page(secondary_page)
             gcm.clear()
             page, secondary_page = secondary_page, page
@@ -326,18 +326,18 @@ def main():
                 mode_index = 0
             mode = DISPLAY_MODES[mode_index]
             time.sleep(page_interval)
-        except KeyboardInterrupt:
-            raise
+    except KeyboardInterrupt:
+        raise
+    except:
+        try:
+            display.port.close()
         except:
-            try:
-                display.port.close()
-            except:
-                pass
-            try:
-                gcm.port.close()
-            except:
-                pass
-            raise
+            pass
+        try:
+            gcm.port.close()
+        except:
+            pass
+        raise
 
 
 if __name__ == "__main__":
