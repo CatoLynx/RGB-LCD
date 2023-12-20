@@ -24,7 +24,6 @@ import random
 import time
 import traceback
 
-from c3toc import C3TOCAPI
 from pretalx_api import PretalxAPI, ongoing_or_future_filter, max_duration_filter
 
 from PIL import Image
@@ -38,40 +37,38 @@ from gcm_controller import GCMController
 
 
 DISPLAY_MODES = [
-    "arr_dep_eta",
+    "images",
+    "hackertours",
+    "pride",
     "pretalx",
-    "pride"
 ]
 
 TRACK_CODES = {
-    "Digitalcourage": "DC",
-    "Live Music": "LM",
-    "Bits & Bäume": "BB",
-    "DJ Set": "DJ",
+    "Sustainability & Climate Justice": "CS",
+    "Hardware & Making": "HW",
+    "Art & Beauty": "AB",
+    "Ethics, Politics & Society": "EP",
     "CCC": "C",
-    "Nerds der OberRheinischen Tiefebene und der xHain (N\\:O:R:T:x)": "NX",
     "Entertainment": "E",
-    "Performance": "P",
-    "Milliways": "MW"
+    "Science": "S",
+    "Security": "SE"
 }
 
 ROOM_ABBREVIATIONS = {
-    "Digitalcourage": "Dig.courage",
-    "Bits & Bäume": "Bits+Bäume",
-    "Hardware Hacking Village": "HW Hck Vlg",
-    "Milliways Workshop Dome": "MW Dome"
+    "Chaospat:innen Assembly Space": "Chaospatinnen",
+    "Kidspace - Workshopraum in Saal B": "Kidspace Saal B",
+    "Sendezentrum Podcast-Tisch": "Podcast-Tisch"
 }
 
 TRACK_COLORS = {
-    "DC": 0xfbc617,
-    "LM": 0x9d9d9d,
-    "BB": 0x81c854,
-    "DJ": 0x9d9d9d,
+    "CS": 0xfbc617,
+    "HW": 0x9d9d9d,
+    "AB": 0x81c854,
+    "EP": 0x9d9d9d,
     "C":  0xfb48c4,
-    "NX": 0x003a3e,
     "E":  0x1a36cd,
-    "P":  0x9d9d9d,
-    "MW": 0x3cacd7
+    "S":  0x9d9d9d,
+    "SE": 0x3cacd7
 }
 
 GENERIC_PALETTE = [
@@ -141,22 +138,12 @@ def main():
         display_height = 64
         page_interval = 20 # Page switch interval in seconds (roughly)
         
-        eta_lookback = 10 # How many minutes of past train positions to consider for ETA
-        eta_max_jump = 30 # Maximum ETA jump in seconds
-        trackmarker_delta_arrived = 20 # "station zone" size in track units
-        display_trackmarker = 34 # Physical trackmarker position of the display
-        
-        toc = C3TOCAPI()
-        pretalx = PretalxAPI("https://pretalx.c3voc.de/camp2023/schedule/export/schedule.json")
+        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2023/fahrplan/schedule.json")
         renderer = TextRenderer("../fonts")
         display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
         gcm = GCMController(CONFIG_GCM_PORT, debug=False)
         time.sleep(3)
         gcm.set_high_current(True)
-        
-        tracks = toc.get_tracks()
-        track_length = sorted(tracks['waypoints'].values(), key=lambda e: e['trackmarker'])[-1]['trackmarker']
-        #print("Track length: {}".format(track_length))
         
         try:
             display.reset()
@@ -178,55 +165,99 @@ def main():
         )
         display.become_master()
         
+        last_page_update = 0
+        hackertours_boarding = False
+        hackertours_last_blink_update = 0
+        hackertours_blink_state = False
         while True:
-            display.delete_page(secondary_page)
-            gcm.clear()
-            page, secondary_page = secondary_page, page
-            print("Handling mode: " + mode)
             utcnow = datetime.datetime.utcnow()
             now = datetime.datetime.now()
             
             # Handle all background calculations and data operations
+            # Handle green alternating flashing on hackertours boarding
+            if hackertours_boarding:
+                now_time = time.time()
+                if now_time - hackertours_last_blink_update >= 1.0:
+                    hackertours_blink_state = not hackertours_blink_state
+                    gcm.clear()
+                    if hackertours_blink_state:
+                        for i in range(10):
+                            gcm.set_sector(i, 0x000000)
+                        for i in range(10):
+                            gcm.set_sector(i+22, 0x00FF00)
+                    else:
+                        for i in range(10):
+                            gcm.set_sector(i, 0x00FF00)
+                        for i in range(10):
+                            gcm.set_sector(i+22, 0x000000)
+                    gcm.update()
+                    hackertours_last_blink_update = now_time
             
-            # c3toc API #######################################################
-            # Get trains from API and calculate ETAs
-            # This is run more frequently than it is displayed to keep the ETA more accurate
-            train_info = toc.get_train_info(display_trackmarker, eta_lookback, eta_max_jump, trackmarker_delta_arrived, track_length)
+            if (time.time() - last_page_update) < page_interval:
+                time.sleep(0.1)
+                continue
             
-            for name, info in train_info.items():
-                if info['eta'] is None:
-                    pass #print("No ETA available for {name}".format(name=name))
-                else:
-                    delta = (info['eta'] - utcnow).total_seconds()
-                    #print("{name} will arrive at trackmarker {trackmarker} in {seconds} seconds, at {time} UTC".format(name=name, trackmarker=display_trackmarker, seconds=delta, time=info['eta'].strftime("%H:%M:%S")))
-                #pprint(info)
-            ###################################################################
-            
+            display.delete_page(secondary_page)
+            gcm.clear()
+            page, secondary_page = secondary_page, page
+            print("Handling mode: " + mode)
             
             # Handle displaying the required content
-            if mode == "arr_dep_eta":
-                if train_info:
-                    items = sorted(train_info.items(), key=lambda i: i[1]['eta'] or datetime.datetime(2070, 1, 1, 0, 0, 0))
-                    for i, (name, data) in enumerate(items):
-                        if data['eta'] is not None:
-                            eta_str = str(round(max((data['eta'] - utcnow).total_seconds(), 0) / 60))
-                        else:
-                            eta_str = "???"
-                        y_base = i * 16
-                        line = name[:2].upper()
-                        # Crudely make lines have repeatable distinct colors
-                        color_index = sum(hashlib.md5(line.encode('utf8')).digest()) % len(GENERIC_PALETTE)
-                        for sector in range(8):
-                            gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
-                        line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
-                        display.image(page, 0, y_base, line_image)
-                        dest_image = renderer.render_text(width=220, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=name)
-                        display.image(page, 32, y_base, dest_image)
-                        eta_image = renderer.render_text(width=28, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='right', valign='middle', inverted=True, spacing=1, char_width=None, text=eta_str)
-                        display.image(page, 260, y_base, eta_image)
-                else:
-                    no_dep_img = renderer.render_text(width=display_width-24, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Departures")
-                    display.image(page, 24, 16, no_dep_img)
+            hackertours_boarding = False
+            if mode == "hackertours":
+                # Load tours from file
+                with open("/tmp/hackertours.txt", 'r') as f:
+                    lines = f.readlines()
+                
+                tours = []
+                for line in lines:
+                    timestamp = " ".join(line.split()[:2])
+                    code = line.split()[2]
+                    destination = " ".join(line.split()[3:])
+                    start = datetime.datetime.strptime(timestamp, "%d.%m.%Y %H:%M")
+                    if start >= now:
+                        tours.append({'start': start, 'code': code, 'destination': destination})
+                
+                for tour in tours:
+                    if now >= tour['start'] and now <= (tour['start'] + datetime.timedelta(minutes=15)):
+                        # This tour is boarding now
+                        display.fill_area(page, x=0, y=0, width=24, height=64, state=1)
+                        boarding_img = renderer.render_multiline_text(width=display_width-24, height=display_height, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text="Now boarding:\n" + tour['destination'], auto_wrap=True, break_words=False)
+                        display.image(page, 24, 0, boarding_img)
+                        hackertours_boarding = True
+                
+                if not hackertours_boarding:
+                    header_image = renderer.render_text(width=256, height=12, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Hackertours")
+                    display.image(page, 32, 0, header_image)
+                    display.fill_area(page, x=0, y=14, width=288, height=1, state=1)
+                    display.fill_area(page, x=0, y=0, width=24, height=14, state=1)
+                    gcm.set_sector(0, 0xFF0000)
+                    gcm.set_sector(1, 0xFF7F00)
+                    gcm.set_sector(2, 0xFFFF00)
+                    gcm.set_sector(3, 0x00FF00)
+                    gcm.set_sector(4, 0x0000FF)
+                    gcm.set_sector(5, 0x4B0082)
+                    gcm.set_sector(6, 0x8F00FF)
+                    
+                    if tours:
+                        items = sorted(tours, key=lambda t: t['start'])[:3]
+                        for i, tour in enumerate(items):
+                            dep_str = tour['start'].strftime("%a %H:%M")
+                            y_base = (i + 1) * 16
+                            line = tour['code']
+                            # Crudely make lines have repeatable distinct colors
+                            color_index = sum(hashlib.md5(line.encode('utf8')).digest()) % len(GENERIC_PALETTE)
+                            for sector in range(8):
+                                gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
+                            line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
+                            display.image(page, 0, y_base, line_image)
+                            dest_image = renderer.render_text(width=152, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=tour['destination'])
+                            display.image(page, 32, y_base, dest_image)
+                            dep_image = renderer.render_text(width=96, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='right', valign='middle', inverted=True, spacing=1, char_width=None, text=dep_str)
+                            display.image(page, 192, y_base, dep_image)
+                    else:
+                        no_dep_img = renderer.render_text(width=display_width-24, height=48, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Hackertours :(")
+                        display.image(page, 24, 16, no_dep_img)
             elif mode == "pretalx":
                 # Display header
                 track_image = renderer.render_text(width=28, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Trck")
@@ -266,7 +297,7 @@ def main():
                         else:
                             time_text = "{}m".format(round((seconds % 3600) / 60))
 
-                        track_code = TRACK_CODES.get(event['track'], event['track'].upper()[:2])
+                        track_code = TRACK_CODES.get(event['track'], (event['track'] or "No Track").upper()[:2])
                         track_color = TRACK_COLORS.get(track_code, 0xffffff)
 
                         y_base = 12 + i * 16
@@ -291,7 +322,7 @@ def main():
                             display.image(page, 96, y_base+3, title_image)
                         display.image(page, 238, y_base+3, time_image)
                 else:
-                    no_evt_img = renderer.render_text(width=display_width-24, height=32, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Events")
+                    no_evt_img = renderer.render_text(width=display_width-24, height=48, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="No Events :(")
                     display.image(page, 24, 16, no_evt_img)
             elif mode == "pride":
                 display.fill_area(page, x=0, y=0, width=24, height=64, state=1)
@@ -309,6 +340,12 @@ def main():
                 display.image(page, 32, 0, name_image)
                 #info_image = renderer.render_multiline_text(width=256, height=40, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='left', valign='bottom', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text=info['info'], auto_wrap=True, break_words=False)
                 #display.image(page, 32, 24, info_image)
+            elif mode == "images":
+                images = [file for file in os.listdir("../images")]
+                image = random.choice(images)
+                image_path = os.path.join("../images", image)
+                print("Displaying image:", image)
+                display.image(page, 24, 0, image_path)
                     
             
             # Process any messages from the display and check for errors
@@ -321,11 +358,13 @@ def main():
             display.set_page(page)
             time.sleep(0.4) # LCD update delay
             gcm.update()
-            mode_index += 1
+            if not hackertours_boarding:
+                # HT boarding stays until the flag is reset, so prevent mode switching
+                mode_index += 1
             if mode_index >= len(DISPLAY_MODES):
                 mode_index = 0
             mode = DISPLAY_MODES[mode_index]
-            time.sleep(page_interval)
+            last_page_update = time.time()
     except KeyboardInterrupt:
         raise
     except:

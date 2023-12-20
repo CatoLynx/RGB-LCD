@@ -1,3 +1,3 @@
-# RGB LCD departure display at CCCamp23
+# RGB LCD departure display at chaos events
 
-It shows estimated departure times of trains at the camp
+Usually shows schedule, some pride flags and other shenanigans
