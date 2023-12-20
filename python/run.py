@@ -297,7 +297,7 @@ def main():
                         else:
                             time_text = "{}m".format(round((seconds % 3600) / 60))
 
-                        track_code = TRACK_CODES.get(event['track'], (event['track'] or "No Track").upper()[:2])
+                        track_code = TRACK_CODES.get(event['track'], (event['track'] or "/").upper()[:2])
                         track_color = TRACK_COLORS.get(track_code, 0xffffff)
 
                         y_base = 12 + i * 16
