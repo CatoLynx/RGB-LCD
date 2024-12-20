@@ -2,18 +2,15 @@ from flask import Flask, request, render_template_string
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from secrets import HT_USERS
+
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-# Define users and passwords here
-users = {
-    "stb": generate_password_hash("RzsP86t6R7")
-}
-
 @auth.verify_password
 def verify_password(username, password):
-    if username in users and \
-            check_password_hash(users.get(username), password):
+    if username in HT_USERS and \
+            check_password_hash(HT_USERS.get(username), password):
         return username
 
 filename = "/tmp/hackertours.txt"
