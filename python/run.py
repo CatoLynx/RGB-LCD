@@ -40,10 +40,9 @@ from gcm_controller import GCMController
 
 DISPLAY_MODES = [
     "db-departures",
-    "images",
     "hackertours",
-    "pride",
     "pretalx",
+    "images",
 ]
 
 TRACK_CODES = {
