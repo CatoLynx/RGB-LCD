@@ -1,8 +1,8 @@
 from flask import Flask, request, render_template_string
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 
-from secrets import HT_USERS
+from local_secrets import HT_USERS
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -31,7 +31,7 @@ html = """
 </html>
 """
 
-@app.route('/37c3/ht-schedule', methods=['GET', 'POST'])
+@app.route('/ht-schedule', methods=['GET', 'POST'])
 @auth.login_required
 def index():
     content = ''

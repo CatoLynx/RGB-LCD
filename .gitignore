@@ -5,5 +5,5 @@ dist/
 __pycache__/
 python/_config.py
 python/.venv/
-python/secrets.py
+python/local_secrets.py
 python/hackertours.txt
