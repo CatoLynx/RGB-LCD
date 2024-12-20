@@ -144,7 +144,7 @@ def main():
         secondary_page = 2
         display_width = 3 * 96
         display_height = 64
-        page_interval = 20 # Page switch interval in seconds (roughly)
+        page_interval = 10 # Page switch interval in seconds (roughly)
         
         hackertours_boarding_duration = 10 # How long (in minutes) the boarding screen should stay
         
