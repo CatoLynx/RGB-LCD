@@ -47,10 +47,9 @@ DISPLAY_MODES = [
 ]
 
 TRACK_CODES = {
-    "Sustainability & Climate Justice": "CS",
     "Hardware & Making": "HW",
     "Art & Beauty": "AB",
-    "Ethics, Politics & Society": "EP",
+    "Ethics, Society & Politics": "EP",
     "CCC": "C",
     "Entertainment": "E",
     "Science": "S",
@@ -58,20 +57,18 @@ TRACK_CODES = {
 }
 
 ROOM_ABBREVIATIONS = {
-    "Chaospat:innen Assembly Space": "Chaospatinnen",
-    "Kidspace - Workshopraum in Saal B": "Kidspace Saal B",
-    "Sendezentrum Podcast-Tisch": "Podcast-Tisch"
+    "Saal GLITCH": "GLITCH",
+    "Saal ZIGZAG": "ZIGZAG"
 }
 
 TRACK_COLORS = {
-    "CS": 0xfbc617,
-    "HW": 0x9d9d9d,
-    "AB": 0x81c854,
-    "EP": 0x9d9d9d,
-    "C":  0xfb48c4,
-    "E":  0x1a36cd,
-    "S":  0x9d9d9d,
-    "SE": 0x3cacd7
+    "HW": 0x6b5ea1,
+    "AB": 0xf9b000,
+    "EP": 0xe40429,
+    "C":  0xf2f006,
+    "E":  0x80807f,
+    "S":  0x00ff88,
+    "SE": 0x0463fb
 }
 
 GENERIC_PALETTE = [
@@ -152,7 +149,7 @@ def main():
         dbi_num_trains = 3
         dbi_cur_station = 0
         
-        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2023/fahrplan/schedule.json")
+        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2024/fahrplan/schedule/export/schedule.json")
         dbi = DBInfoscreen("trains.xatlabs.com")
         renderer = TextRenderer("../fonts")
         display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)

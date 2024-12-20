@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Image Upload</title>
+    </head>
+    <body>
+        <p>
+            Image requirements:
+            <ul>
+                <li>Resolution: 264 × 64 pixels</li>
+                <li>White on black background, no greyscale</li>
+                <li>Static images only, no animations</li>
+            </ul>
+            By uploading an image, you confirm that the uploaded image is your own work and you agree to waive all copyright according to <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0</a>.
+        </p>
+        <p>
+            Your image will be reviewed and approved manually.
+        </p>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/png,image/bmp,image/gif,image/jpeg"><br>
+            <input type="submit" value="Upload">
+        </form>
+        <p>
+            {{ message }}
+        </p>
+        {% if image %}
+            <div style="display: inline-block;">
+                <img style="image-rendering: pixelated; width: 200%;" src="/img/pending/{{ image }}">
+            </div>
+        {% endif %}
+    </body>
+</html>

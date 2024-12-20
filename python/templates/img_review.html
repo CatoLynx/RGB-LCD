@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Image Review</title>
+    </head>
+    <body>
+        {% if images|length == 0 %}
+            <p>
+                Nothing to review!
+            </p>
+        {% else %}
+            {% for image in images %}
+            <div style="margin-bottom: 2rem;">
+                <form method="POST">
+                    <div>
+                        <div style="display: inline-block;">
+                            <img style="image-rendering: pixelated; width: 200%;" src="/img/pending/{{ image.filename }}"><br/>
+                        </div>
+                        <div>
+                            {{ image.filename }}
+                        </div>
+                    </div>
+                    <input type="hidden" name="filename" value="{{ image.filename }}" />
+                    <input type="submit" name="action" value="Approve" />
+                    <input type="submit" name="action" value="Reject" />
+                </form>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </body>
+</html>
