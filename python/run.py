@@ -1,5 +1,5 @@
 """
-Copyright (C) 2023 Julian Metzler
+Copyright (C) 2023-2024 Julian Metzler
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@ import time
 import traceback
 
 from pretalx_api import PretalxAPI, ongoing_or_future_filter, max_duration_filter
+from deutschebahn import DBInfoscreen
+from deutschebahn.utils import timeout
 
 from PIL import Image
 from pprint import pprint
@@ -37,6 +39,7 @@ from gcm_controller import GCMController
 
 
 DISPLAY_MODES = [
+    "db-departures",
     "images",
     "hackertours",
     "pride",
@@ -80,6 +83,11 @@ GENERIC_PALETTE = [
     0xff00ff,
     0xffffff
 ]
+
+
+@timeout(30)
+def get_trains(dbi, station):
+    return dbi.get_trains(station)
 
 
 # Pride flag image parser
@@ -138,7 +146,14 @@ def main():
         display_height = 64
         page_interval = 20 # Page switch interval in seconds (roughly)
         
+        hackertours_boarding_duration = 10 # How long (in minutes) the boarding screen should stay
+        
+        dbi_stations = [("ADF", "Dammtor")]
+        dbi_num_trains = 3
+        dbi_cur_station = 0
+        
         pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2023/fahrplan/schedule.json")
+        dbi = DBInfoscreen("trains.xatlabs.com")
         renderer = TextRenderer("../fonts")
         display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
         gcm = GCMController(CONFIG_GCM_PORT, debug=False)
@@ -215,11 +230,11 @@ def main():
                     code = line.split()[2]
                     destination = " ".join(line.split()[3:])
                     start = datetime.datetime.strptime(timestamp, "%d.%m.%Y %H:%M")
-                    if start >= now:
+                    if start >= (now - datetime.timedelta(minutes=hackertours_boarding_duration)):
                         tours.append({'start': start, 'code': code, 'destination': destination})
                 
                 for tour in tours:
-                    if now >= tour['start'] and now <= (tour['start'] + datetime.timedelta(minutes=15)):
+                    if now >= tour['start'] and now <= (tour['start'] + datetime.timedelta(minutes=hackertours_boarding_duration)):
                         # This tour is boarding now
                         display.fill_area(page, x=0, y=0, width=24, height=64, state=1)
                         boarding_img = renderer.render_multiline_text(width=display_width-24, height=display_height, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text="Now boarding:\n" + tour['destination'], auto_wrap=True, break_words=False)
@@ -346,6 +361,49 @@ def main():
                 image_path = os.path.join("../images", image)
                 print("Displaying image:", image)
                 display.image(page, 24, 0, image_path)
+            elif mode == "db-departures":
+                station = dbi_stations[dbi_cur_station][0]
+                station_name = dbi_stations[dbi_cur_station][1]
+                trains = dbi.calc_real_times(get_trains(dbi, station))
+                trains.sort(key=dbi.time_sort)
+
+                header_image = renderer.render_text(width=256, height=12, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=f"Abfahrten in {station_name}")
+                display.image(page, 32, 0, header_image)
+                display.fill_area(page, x=0, y=14, width=288, height=1, state=1)
+                display.fill_area(page, x=0, y=0, width=24, height=14, state=1)
+                gcm.set_sector(0, 0xFF0000)
+                gcm.set_sector(1, 0xFF7F00)
+                gcm.set_sector(2, 0xFFFF00)
+                gcm.set_sector(3, 0x00FF00)
+                gcm.set_sector(4, 0x0000FF)
+                gcm.set_sector(5, 0x4B0082)
+                gcm.set_sector(6, 0x8F00FF)
+                
+                if trains:
+                    items = [t for t in trains if 'scheduledDeparture' in t][:dbi_num_trains]
+                    for i, train in enumerate(items):
+                        dep_str = train['scheduledDeparture']
+                        delay_str = f"+{train['delayDeparture']}" if train['delayDeparture'] >= 0 else f"{train['delayDeparture']}"
+                        y_base = (i + 1) * 16
+                        line = "EV" if train['train'] == "Bus EV" else "".join([l for l in train['train'] if l.isdigit()])
+                        # Crudely make lines have repeatable distinct colors
+                        color_index = sum(hashlib.md5(line.encode('utf8')).digest()) % len(GENERIC_PALETTE)
+                        for sector in range(8):
+                            gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
+                        line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
+                        display.image(page, 0, y_base, line_image)
+                        dest_image = renderer.render_text(width=170, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=train['destination'])
+                        display.image(page, 32, y_base, dest_image)
+                        dep_image = renderer.render_text(width=48, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=dep_str)
+                        display.image(page, 208, y_base, dep_image)
+                        delay_image = renderer.render_text(width=30, height=16, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=delay_str)
+                        display.image(page, 258, y_base, delay_image)
+                else:
+                    no_dep_img = renderer.render_text(width=display_width-24, height=48, pad_left=0, pad_top=0, font="12_DBLCD", size=0, halign='center', valign='middle', inverted=True, spacing=2, char_width=None, text="Keine Abfahrten")
+                    display.image(page, 24, 16, no_dep_img)
+                
+                dbi_cur_station += 1
+                dbi_cur_station %= len(dbi_stations)
                     
             
             # Process any messages from the display and check for errors
