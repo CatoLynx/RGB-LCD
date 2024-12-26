@@ -216,6 +216,7 @@ def main():
             
             # Handle displaying the required content
             hackertours_boarding = False
+            skip_current_mode = False
             try:
                 if mode == "hackertours":
                     # Load tours from file
@@ -406,8 +407,8 @@ def main():
                 raise
             except ConnectionError:
                 traceback.print_exc()
-                time.sleep(1)
-                    
+                # Force shorter delay
+                skip_current_mode = True
             
             # Process any messages from the display and check for errors
             while True:
@@ -425,7 +426,11 @@ def main():
             if mode_index >= len(DISPLAY_MODES):
                 mode_index = 0
             mode = DISPLAY_MODES[mode_index]
-            last_page_update = time.time()
+            if skip_current_mode:
+                # Force 1 second until next mode
+                last_page_update = time.time() - (page_interval - 1)
+            else:
+                last_page_update = time.time()
     except KeyboardInterrupt:
         raise
     except:
