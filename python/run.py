@@ -384,7 +384,12 @@ def main():
                             dep_str = train['scheduledDeparture']
                             delay_str = f"+{train['delayDeparture']}" if train['delayDeparture'] >= 0 else f"{train['delayDeparture']}"
                             y_base = (i + 1) * 16
-                            line = "EV" if train['train'] == "Bus EV" else "".join([l for l in train['train'] if l.isdigit()])
+                            if train['train'] == "Bus EV":
+                                line = "SEV"
+                            elif train['train'].startswith("S"):
+                                line = train['train'].replace(" ", "")
+                            else:
+                                line = "".join([l for l in train['train'] if l.isdigit()])
                             # Crudely make lines have repeatable distinct colors
                             color_index = sum(hashlib.md5(line.encode('utf8')).digest()) % len(GENERIC_PALETTE)
                             for sector in range(8):
