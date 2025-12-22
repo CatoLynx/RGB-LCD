@@ -7,4 +7,4 @@ python/_config.py
 python/.venv/
 python/local_secrets.py
 python/hackertours.txt
-images/*
+images*/*

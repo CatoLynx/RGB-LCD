@@ -1,5 +1,5 @@
 """
-Copyright (C) 2023-2024 Julian Metzler
+Copyright (C) 2023-2025 Julian Metzler
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -47,18 +47,17 @@ DISPLAY_MODES = [
 ]
 
 TRACK_CODES = {
-    "Hardware & Making": "HW",
+    "Hardware": "HW",
     "Art & Beauty": "AB",
     "Ethics, Society & Politics": "EP",
-    "CCC": "C",
+    "CCC & Community": "C",
     "Entertainment": "E",
     "Science": "S",
     "Security": "SE"
 }
 
 ROOM_ABBREVIATIONS = {
-    "Saal GLITCH": "GLITCH",
-    "Saal ZIGZAG": "ZIGZAG"
+    
 }
 
 TRACK_COLORS = {
@@ -149,7 +148,8 @@ def main():
         dbi_num_trains = 3
         dbi_cur_station = 0
         
-        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2024/fahrplan/schedule/export/schedule.json")
+        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/schedule.json") # merged
+        #pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/fahrplan.json") # main rooms only
         dbi = DBInfoscreen("trains.xatlabs.com")
         renderer = TextRenderer("../fonts")
         display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
@@ -387,7 +387,7 @@ def main():
                             if train['train'] == "Bus EV":
                                 line = "SEV"
                             elif train['train'].startswith("S"):
-                                line = train['train'].replace(" ", "")
+                                line = train['train'].replace(" ", "").replace("SS", "S")
                             else:
                                 line = "".join([l for l in train['train'] if l.isdigit()])
                             # Crudely make lines have repeatable distinct colors
