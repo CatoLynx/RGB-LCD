@@ -148,8 +148,8 @@ def main():
         dbi_num_trains = 3
         dbi_cur_station = 0
         
-        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/schedule.json") # merged
-        #pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/fahrplan.json") # main rooms only
+        #pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/schedule.json") # merged
+        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/fahrplan.json") # main rooms only
         dbi = DBInfoscreen("trains.xatlabs.com")
         renderer = TextRenderer("../fonts")
         display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)

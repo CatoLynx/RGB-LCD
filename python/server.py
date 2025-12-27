@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
@@ -22,6 +22,11 @@ def verify_password(username, password):
     if username in USERS and \
             check_password_hash(USERS.get(username), password):
         return username
+
+
+@app.route("/", methods=["GET"])
+def root():
+    return redirect("/img-upload", code=301)
 
 
 @app.route("/ht-schedule", methods=["GET", "POST"])
