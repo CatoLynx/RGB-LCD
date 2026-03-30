@@ -46,6 +46,7 @@ DISPLAY_MODES = [
     "images",
 ]
 
+HAS_TRACKS = False
 TRACK_CODES = {
     "Hardware": "HW",
     "Art & Beauty": "AB",
@@ -57,7 +58,15 @@ TRACK_CODES = {
 }
 
 ROOM_ABBREVIATIONS = {
-    
+    "The Rabbit Hole": "Rabbit Hole",
+    "Test Chamber 01": "Chamber 01",
+    "The Cake Room": "Cake Room",
+    "The Cheshire Den": "Chesh. Den",
+    "Solder Enrichment Center": "Sld. Enr. C.",
+    "Above ground": "Above gnd.",
+    "Tea Party Garden": "Tea P. Gard.",
+    "Aperture Lab": "Apert. Lab",
+    "Follow the Carrier": "Flw. t. Carr."
 }
 
 TRACK_COLORS = {
@@ -144,12 +153,11 @@ def main():
         
         hackertours_boarding_duration = 10 # How long (in minutes) the boarding screen should stay
         
-        dbi_stations = [("ADF", "Dammtor")]
+        dbi_stations = [("KKO", "Koblenz Hbf")]
         dbi_num_trains = 3
         dbi_cur_station = 0
         
-        #pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/schedule.json") # merged
-        pretalx = PretalxAPI("https://fahrplan.events.ccc.de/congress/2025/fahrplan/schedules/fahrplan.json") # main rooms only
+        pretalx = PretalxAPI("https://pretalx.eh23.easterhegg.eu/eh23/schedule.json")
         dbi = DBInfoscreen("trains.xatlabs.com")
         renderer = TextRenderer("../fonts")
         display = MIS1MatrixDisplay(CONFIG_LCD_PORT, baudrate=115200, use_rts=False, debug=False)
@@ -225,18 +233,22 @@ def main():
                     
                     tours = []
                     for line in lines:
-                        timestamp = " ".join(line.split()[:2])
-                        code = line.split()[2]
-                        destination = " ".join(line.split()[3:])
+                        parts = line.split()
+                        timestamp = " ".join(parts[:2])
+                        code = parts[2]
+                        color = int(parts[3], 16)
+                        destination = " ".join(parts[4:])
                         start = datetime.datetime.strptime(timestamp, "%d.%m.%Y %H:%M")
-                        if start >= (now - datetime.timedelta(minutes=hackertours_boarding_duration)):
-                            tours.append({'start': start, 'code': code, 'destination': destination})
+                        # Select all tours that have not started yet (plus the boarding window)
+                        # Boarding window means: X minutes starting at the scheduled start time
+                        if (start + datetime.timedelta(minutes=hackertours_boarding_duration)) >= now:
+                            tours.append({'start': start, 'code': code, 'color': color, 'destination': destination})
                     
                     for tour in tours:
                         if now >= tour['start'] and now <= (tour['start'] + datetime.timedelta(minutes=hackertours_boarding_duration)):
                             # This tour is boarding now
                             display.fill_area(page, x=0, y=0, width=24, height=64, state=1)
-                            boarding_img = renderer.render_multiline_text(width=display_width-24, height=display_height, pad_left=0, pad_top=0, font="21_DBLCD", size=0, halign='center', valign='middle', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text="Now boarding:\n" + tour['destination'], auto_wrap=True, break_words=False)
+                            boarding_img = renderer.render_multiline_text(width=display_width-24, height=display_height, pad_left=0, pad_top=0, font="14_DBLCD", size=0, halign='center', valign='middle', inverted=True, h_spacing=1, v_spacing=3, char_width=None, text="Now boarding:\n" + tour['destination'], auto_wrap=True, break_words=False)
                             display.image(page, 24, 0, boarding_img)
                             hackertours_boarding = True
                     
@@ -259,10 +271,8 @@ def main():
                                 dep_str = tour['start'].strftime("%a %H:%M")
                                 y_base = (i + 1) * 16
                                 line = tour['code']
-                                # Crudely make lines have repeatable distinct colors
-                                color_index = sum(hashlib.md5(line.encode('utf8')).digest()) % len(GENERIC_PALETTE)
                                 for sector in range(8):
-                                    gcm.set_sector(y_base // 2 + sector, GENERIC_PALETTE[color_index])
+                                    gcm.set_sector(y_base // 2 + sector, tour['color'])
                                 line_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=line)
                                 display.image(page, 0, y_base, line_image)
                                 dest_image = renderer.render_text(width=180, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='left', valign='middle', inverted=True, spacing=1, char_width=None, text=tour['destination'])
@@ -278,13 +288,19 @@ def main():
                     location_image = renderer.render_text(width=70, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Location")
                     title_image = renderer.render_text(width=32, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text="Title")
                     time_image = renderer.render_text(width=50, height=7, pad_left=0, pad_top=0, font="7_DBLCD", size=0, halign='right', valign='top', inverted=True, spacing=1, char_width=None, text="Starts in")
-                    display.image(page, 0, 0, track_image)
+                    if HAS_TRACKS:
+                        display.image(page, 0, 0, track_image)
                     display.image(page, 26, 0, location_image)
                     display.image(page, 96, 0, title_image)
                     display.image(page, 238, 0, time_image)
-                    display.fill_area(page, x=0, y=8, width=288, height=1, state=1)
-                    for i in range(5):
-                        gcm.set_sector(i, 0xffffff)
+                    if HAS_TRACKS:
+                        display.fill_area(page, x=0, y=8, width=288, height=1, state=1)
+                    else:
+                        display.fill_area(page, x=24, y=8, width=264, height=1, state=1)
+
+                    if HAS_TRACKS:
+                        for i in range(5):
+                            gcm.set_sector(i, 0xffffff)
 
                     # Get schedule from pretalx
                     events = pretalx.get_all_events()
@@ -312,11 +328,12 @@ def main():
                                 time_text = "{}m".format(round((seconds % 3600) / 60))
 
                             track_code = TRACK_CODES.get(event['track'], (event['track'] or "/").upper()[:2])
-                            track_color = TRACK_COLORS.get(track_code, 0xffffff)
-
                             y_base = 12 + i * 16
-                            for r in range(8):
-                                gcm.set_sector(y_base // 2 + r, track_color)
+
+                            if HAS_TRACKS:
+                                track_color = TRACK_COLORS.get(track_code, 0xffffff)
+                                for r in range(8):
+                                    gcm.set_sector(y_base // 2 + r, track_color)
 
                             track_image = renderer.render_text(width=24, height=16, pad_left=0, pad_top=0, font="10S_DBLCD", size=0, halign='center', valign='middle', inverted=False, spacing=1, char_width=None, text=track_code)
                             room_image = renderer.render_text(width=68, height=16, pad_left=0, pad_top=3, font="7_DBLCD", size=0, halign='left', valign='top', inverted=True, spacing=1, char_width=None, text=ROOM_ABBREVIATIONS.get(event['room'], event['room']))
@@ -328,7 +345,9 @@ def main():
                             title_bbox = title_image.getbbox()
                             title_image = title_image.crop((0, 0, title_bbox[2], title_bbox[3]))
                             
-                            display.image(page, 0, y_base, track_image)
+                            if HAS_TRACKS:
+                                display.image(page, 0, y_base, track_image)
+
                             display.image(page, 26, y_base+1, room_image)
                             if title_image.size[0] > 140:
                                 display.scroll_image(i*2+1, page, 96, y_base+3, 140, title_image, extra_whitespace=50)
@@ -379,10 +398,10 @@ def main():
                     gcm.set_sector(6, 0x8F00FF)
                     
                     if trains:
-                        items = [t for t in trains if 'scheduledDeparture' in t][:dbi_num_trains]
+                        items = [t for t in trains if t.get('scheduledDeparture')][:dbi_num_trains]
                         for i, train in enumerate(items):
                             dep_str = train['scheduledDeparture']
-                            delay_str = f"+{train['delayDeparture']}" if train['delayDeparture'] >= 0 else f"{train['delayDeparture']}"
+                            delay_str = f"+{train['delayDeparture']}" if (train['delayDeparture'] or 0) >= 0 else f"{train['delayDeparture']}"
                             y_base = (i + 1) * 16
                             if train['train'] == "Bus EV":
                                 line = "SEV"
