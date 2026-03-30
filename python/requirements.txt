@@ -1,0 +1,25 @@
+certifi==2023.7.22
+charset-normalizer==3.2.0
+click==8.1.7
+deutschebahn==1.3.3
+Flask==2.2.5
+Flask-HTTPAuth==4.8.0
+idna==3.4
+importlib-metadata==6.7.0
+itsdangerous==2.1.2
+Jinja2==3.1.2
+MarkupSafe==2.1.3
+Pillow==9.5.0
+pyc3toc @ git+https://github.com/CatoLynx/pyc3toc@fc3f92bffad492ba20d86f704c88d015a89ea0a7
+pyFIS==1.12.2
+pyPretalxAPI==1.0.3
+pyserial==3.5
+pyTelegramBotAPI==4.15.4
+python-dateutil==2.8.2
+requests==2.31.0
+six==1.16.0
+typing_extensions==4.7.1
+urllib3==2.0.4
+uWSGI==2.0.28
+Werkzeug==2.2.3
+zipp==3.15.0
